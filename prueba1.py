@@ -1,68 +1,88 @@
-# Tratamiento de datos
 import pandas as pd
 import numpy as np
-import statsmodels.api as sm
-from patsy import dmatrices
-
-# Estadísticas
-import scipy 
-from scipy import stats
-
-# Para partir datos entrenamiento y validación
-from sklearn.model_selection import train_test_split
-
-# Modelo de Clasificación 
-from sklearn.metrics import classification_report
-
-from sklearn.neighbors import KNeighborsClassifier
-
-from sklearn.model_selection import GridSearchCV
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import accuracy_score
-
-# Gráficos
+from sklearn.neighbors import NearestNeighbors
 import matplotlib.pyplot as plt
-import seaborn as sb
+from scipy.spatial.distance import cdist
 
-## cargar datos
-datos = pd.read_csv("https://raw.githubusercontent.com/rozheb/pruebaAlgoritmo/main/datasetrutas.csv", on_bad_lines='skip')
-datos
-
+# Cargar datos
+datos = pd.read_csv("https://raw.githubusercontent.com/rozheb/pruebaAlgoritmo/main/datasetrutas.csv")
 print("Observaciones y variables: ", datos.shape)
 
-## Columnas y tipo de dato
-datos.dtypes
+# Verificar las primeras filas del archivo
+print(datos.head())
 
-#carga de datos 
-X = datos.drop(columns='xi')
-y = datos['xi']
-# Identificar las columnas categóricas
-columnas_categoricas = X.select_dtypes(include=['object']).columns
+# Extraer las coordenadas de latitud y longitud
+locations = datos[['Latitud', 'Longitud']].values
 
-# Crear el transformador para las variables categóricas
-preprocessor = ColumnTransformer(
-    transformers=[
-        ('cat', OneHotEncoder(), columnas_categoricas)
-    ],
-    remainder='passthrough'  # Mantener las columnas numéricas tal como están
-)
+# Calcular matriz de distancias euclidianas
+distance_matrix = cdist(locations, locations, metric='euclidean')
 
-# Dividir los datos en entrenamiento y validación
-X_entrena, X_valida, Y_entrena, Y_valida = train_test_split(X, y, train_size=0.80, random_state=1280)
+# Crear el modelo de vecinos más cercanos
+nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto').fit(locations)
+distances, indices = nbrs.kneighbors(locations)
 
-# Aplicar el transformador a los datos de entrenamiento y validación
-X_entrena = preprocessor.fit_transform(X_entrena)
-X_valida = preprocessor.transform(X_valida)
+# Función para encontrar una ruta utilizando vecinos más cercanos
+def nearest_neighbor_route(start_index, distance_matrix):
+    n = distance_matrix.shape[0]
+    visited = [False] * n
+    route = [start_index]
+    visited[start_index] = True
+    
+    for _ in range(n - 1):
+        last_index = route[-1]
+        nearest_index = None
+        nearest_distance = float('inf')
+        
+        for i in range(n):
+            if not visited[i] and distance_matrix[last_index, i] < nearest_distance:
+                nearest_index = i
+                nearest_distance = distance_matrix[last_index, i]
+        
+        route.append(nearest_index)
+        visited[nearest_index] = True
+    
+    return route
 
-# Crear y entrenar el modelo KNN
-knn = KNeighborsClassifier(n_neighbors=12)
-knn.fit(X_entrena, Y_entrena)
+# Crear una ruta comenzando desde el primer punto (Warehouse)
+start_index = 0
+route = nearest_neighbor_route(start_index, distance_matrix)
+print("Route:", route)
 
-# Evaluar el modelo
-y_pred = knn.predict(X_valida)
-print("Accuracy:", accuracy_score(Y_valida, y_pred))
-print("Confusion Matrix:\n", confusion_matrix(Y_valida, y_pred))
-print("Classification Report:\n", classification_report(Y_valida, y_pred))
+# Plot para visualizar la ruta
+route_locations = locations[route]
+plt.plot(route_locations[:, 0], route_locations[:, 1], 'o-')
+plt.xlabel('Latitude')
+plt.ylabel('Longitude')
+plt.title('Optimized Route using Nearest Neighbor')
+plt.show()
+
+# Función para aplicar la optimización de 2-opt
+def two_opt(route, distance_matrix):
+    best_route = route
+    improved = True
+    while improved:
+        improved = False
+        for i in range(1, len(route) - 2):
+            for j in range(i + 1, len(route)):
+                if j - i == 1: continue
+                new_route = route[:i] + route[i:j][::-1] + route[j:]
+                if total_distance(new_route, distance_matrix) < total_distance(best_route, distance_matrix):
+                    best_route = new_route
+                    improved = True
+        route = best_route
+    return best_route
+
+def total_distance(route, distance_matrix):
+    return sum(distance_matrix[route[i], route[i + 1]] for i in range(len(route) - 1))
+
+# Aplicar optimización de 2-opt
+optimized_route = two_opt(route, distance_matrix)
+print("Optimized Route:", optimized_route)
+
+# Plot para visualizar la ruta optimizada
+optimized_route_locations = locations[optimized_route]
+plt.plot(optimized_route_locations[:, 0], optimized_route_locations[:, 1], 'o-')
+plt.xlabel('Latitude')
+plt.ylabel('Longitude')
+plt.title('Optimized Route using 2-opt')
+plt.show()
