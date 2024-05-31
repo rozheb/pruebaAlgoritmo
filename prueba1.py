@@ -11,8 +11,9 @@ print("Observaciones y variables: ", datos.shape)
 # Verificar las primeras filas del archivo
 print(datos.head())
 
-# Extraer las coordenadas de latitud y longitud
-locations = datos[['Latitud', 'Longitud']].values
+# Ajusta los nombres de las columnas según tu archivo
+# Aquí asumo que las columnas se llaman 'Lat' y 'Lon'
+locations = datos[['Lat', 'Lon']].values
 
 # Calcular matriz de distancias euclidianas
 distance_matrix = cdist(locations, locations, metric='euclidean')
