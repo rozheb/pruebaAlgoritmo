@@ -1,19 +1,29 @@
 import pandas as pd
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
-import matplotlib.pyplot as plt
 from scipy.spatial.distance import cdist
+import matplotlib.pyplot as plt
 
-# Cargar datos
-datos = pd.read_csv("https://raw.githubusercontent.com/rozheb/pruebaAlgoritmo/main/datasetrutas.csv")
-print("Observaciones y variables: ", datos.shape)
+# URL del archivo CSV
+url = "https://raw.githubusercontent.com/rozheb/pruebaAlgoritmo/main/datasetrutas2.csv"
+# Cargar datos desde la URL
+datos = pd.read_csv(url,on_bad_lines='skip')
 
-# Verificar las primeras filas del archivo
+# Verificar las primeras filas y las columnas disponibles
 print(datos.head())
+print(datos.columns)
 
-# Ajusta los nombres de las columnas según tu archivo
-# Aquí asumo que las columnas se llaman 'Lat' y 'Lon'
-locations = datos[['Lat', 'Lon']].values
+# Extraer las coordenadas de latitud y longitud
+locations = datos[['Latitud', 'Longitud']].values
+
+# Plot para visualizar las ubicaciones
+plt.figure(figsize=(10, 8))
+plt.scatter(locations[:, 0], locations[:, 1], marker='o', c='red', edgecolor='b')
+plt.xlabel('Latitud')
+plt.ylabel('Longitud')
+plt.title('Ubicaciones')
+plt.grid(True)
+plt.show()
 
 # Calcular matriz de distancias euclidianas
 distance_matrix = cdist(locations, locations, metric='euclidean')
@@ -22,7 +32,9 @@ distance_matrix = cdist(locations, locations, metric='euclidean')
 nbrs = NearestNeighbors(n_neighbors=5, algorithm='auto').fit(locations)
 distances, indices = nbrs.kneighbors(locations)
 
-# Función para encontrar una ruta utilizando vecinos más cercanos
+# Imprimir los índices de los vecinos más cercanos
+print(indices)
+
 def nearest_neighbor_route(start_index, distance_matrix):
     n = distance_matrix.shape[0]
     visited = [False] * n
@@ -44,20 +56,22 @@ def nearest_neighbor_route(start_index, distance_matrix):
     
     return route
 
-# Crear una ruta comenzando desde el primer punto (Warehouse)
+# Crear una ruta comenzando desde el primer punto
 start_index = 0
 route = nearest_neighbor_route(start_index, distance_matrix)
-print("Route:", route)
+print("Ruta utilizando vecino más cercano:", route)
 
 # Plot para visualizar la ruta
 route_locations = locations[route]
+plt.figure(figsize=(10, 8))
 plt.plot(route_locations[:, 0], route_locations[:, 1], 'o-')
-plt.xlabel('Latitude')
-plt.ylabel('Longitude')
-plt.title('Optimized Route using Nearest Neighbor')
+plt.scatter(locations[:, 0], locations[:, 1], marker='o', c='red', edgecolor='b')
+plt.xlabel('Latitud')
+plt.ylabel('Longitud')
+plt.title('Ruta optimizada usando vecino más cercano')
+plt.grid(True)
 plt.show()
 
-# Función para aplicar la optimización de 2-opt
 def two_opt(route, distance_matrix):
     best_route = route
     improved = True
@@ -78,12 +92,15 @@ def total_distance(route, distance_matrix):
 
 # Aplicar optimización de 2-opt
 optimized_route = two_opt(route, distance_matrix)
-print("Optimized Route:", optimized_route)
+print("Ruta optimizada usando 2-opt:", optimized_route)
 
 # Plot para visualizar la ruta optimizada
 optimized_route_locations = locations[optimized_route]
+plt.figure(figsize=(10, 8))
 plt.plot(optimized_route_locations[:, 0], optimized_route_locations[:, 1], 'o-')
-plt.xlabel('Latitude')
-plt.ylabel('Longitude')
-plt.title('Optimized Route using 2-opt')
+plt.scatter(locations[:, 0], locations[:, 1], marker='o', c='red', edgecolor='b')
+plt.xlabel('Latitud')
+plt.ylabel('Longitud')
+plt.title('Ruta optimizada usando 2-opt')
+plt.grid(True)
 plt.show()
