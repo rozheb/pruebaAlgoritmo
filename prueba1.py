@@ -5,7 +5,7 @@ from scipy.spatial.distance import cdist
 import matplotlib.pyplot as plt
 
 # URL del archivo CSV
-url = "https://raw.githubusercontent.com/rozheb/pruebaAlgoritmo/main/datasetrutas2.csv"
+url = "https://raw.githubusercontent.com/rozheb/pruebaAlgoritmo/main/datasetrutas3.csv"
 # Cargar datos desde la URL
 datos = pd.read_csv(url,on_bad_lines='skip')
 
