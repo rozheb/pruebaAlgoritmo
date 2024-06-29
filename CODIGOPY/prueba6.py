@@ -1,4 +1,6 @@
 import json
+import base64
+import requests
 import pandas as pd
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -125,3 +127,58 @@ plt.grid(True)
 plt.show()
 
 print(f"Ruta óptima guardada en '{ruta_json_file}'")
+
+
+# Datos del archivo y el repositorio
+local_file_path = r"C:\Users\aldab\Desktop\pruebaAlgoritmo\CODIGOPY\ruta_optima.json"
+github_repo = "rozheb/pruebaAlgoritmo"
+github_path = "json/ruta_optima.json"
+commit_message = "Add optimal route JSON file"
+
+# Token de acceso personal de GitHub
+github_token = "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"  # Reemplaza esto con tu token
+
+# Leer el contenido del archivo
+with open(local_file_path, "rb") as file:
+    content = file.read()
+
+# Convertir el contenido a base64
+content_base64 = base64.b64encode(content).decode()
+
+# URL para la API de GitHub
+url = f"https://api.github.com/repos/{github_repo}/contents/{github_path}"
+
+# Encabezados para la solicitud
+headers = {
+    "Authorization": f"token {github_token}",
+    "Accept": "application/vnd.github.v3+json"
+}
+
+# Verificar si el archivo ya existe
+response = requests.get(url, headers=headers)
+if response.status_code == 200:
+    # Archivo existe, obtener SHA
+    sha = response.json()['sha']
+else:
+    # Archivo no existe, no necesitamos SHA
+    sha = None
+
+# Datos para la solicitud
+data = {
+    "message": commit_message,
+    "content": content_base64
+}
+
+# Incluir SHA si estamos actualizando un archivo existente
+if sha:
+    data["sha"] = sha
+
+# Realizar la solicitud PUT a la API de GitHub
+response = requests.put(url, headers=headers, data=json.dumps(data))
+
+# Verificar la respuesta
+if response.status_code in [200, 201]:
+    print("Archivo JSON subido exitosamente a GitHub.")
+else:
+    print(f"Error al subir archivo a GitHub. Código de estado: {response.status_code}")
+    print(response.json())
