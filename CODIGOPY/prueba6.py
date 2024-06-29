@@ -181,8 +181,4 @@ if response.status_code in [200, 201]:
     print("Archivo JSON subido exitosamente a GitHub.")
 else:
     print(f"Error al subir archivo a GitHub. Código de estado: {response.status_code}")
-<<<<<<< HEAD
     print(response.json())
-=======
-    print(response.json())
->>>>>>> c9e7a1ad5c0887410b48f1a9509941790660484c
