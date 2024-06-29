@@ -8,7 +8,7 @@ inicio_ruta = (-11.859431, -77.081518)
 fin_ruta = (-11.822902, -77.059019)
 
 # URL del archivo CSV
-url = "https://raw.githubusercontent.com/rozheb/pruebaAlgoritmo/main/DATASETS/datasetrutas6.csv"
+url = "https://raw.githubusercontent.com/rozheb/pruebaAlgoritmo/main/DATASETS/datasetrutas4.csv"
 
 # Cargar datos desde la URL
 datos = pd.read_csv(url, on_bad_lines='skip')
@@ -30,7 +30,7 @@ locations = np.concatenate(([inicio_ruta], locations, [fin_ruta]), axis=0)
 plt.figure(figsize=(10, 8))
 
 # Graficar puntos de inicio y fin con colores distintos
-plt.scatter(locations[:, 0], locations[:, 1], marker='o', c='blue', label='Puntos de recolección')
+plt.scatter(locations[1:-1, 0], locations[1:-1, 1], marker='o', c='blue', label='Puntos de recolección')
 
 # Graficar marcadores para el inicio y fin de la ruta de todos los camiones
 plt.scatter(inicio_ruta[0], inicio_ruta[1], marker='*', s=200, c='purple', label='Inicio de ruta de todos los camiones')
@@ -46,7 +46,6 @@ plt.show()
 # Calcular matriz de distancias euclidianas
 distance_matrix = cdist(locations, locations, metric='euclidean')
 
-
 # Función para calcular la distancia total de un camino en el grafo
 def total_distance(route, distance_matrix, demandas, capacidad):
     n = len(route)
@@ -58,7 +57,6 @@ def total_distance(route, distance_matrix, demandas, capacidad):
         total_dist += distance_matrix[route[i], route[i + 1]]
         total_demand += demandas[route[i]]
     return total_dist
-
 
 # Función para la optimización 2-opt
 def two_opt(route, distance_matrix, demandas, capacidad):
@@ -113,7 +111,6 @@ def vns(distance_matrix, demandas, capacidad, max_iter=100):
     
     return mejor_camino, mejor_distancia
 
-
 # Asumimos que la capacidad del camión es un valor constante (ajusta según sea necesario)
 capacidad_camion = 10  # Capacidad en toneladas
 
@@ -132,7 +129,7 @@ ruta_optima_locations = locations[ruta_optima]
 plt.figure(figsize=(10, 8))
 plt.plot(ruta_optima_locations[:, 0], ruta_optima_locations[:, 1], 'o-')
 plt.scatter(locations[:, 0], locations[:, 1], marker='o', c='red', edgecolor='b')
-plt.scatter(start_locations[:, 0], start_locations[:, 1], marker='o', c='blue', label='Puntos de recolección')
+plt.scatter(locations[1:-1, 0], locations[1:-1, 1], marker='o', c='blue', label='Puntos de recolección')
 plt.scatter(inicio_ruta[0], inicio_ruta[1], marker='*', s=200, c='purple', label='Inicio de ruta de todos los camiones')
 plt.scatter(fin_ruta[0], fin_ruta[1], marker='*', s=200, c='orange', label='Fin de ruta de todos los camiones')
 plt.xlabel('Latitud')
@@ -141,4 +138,3 @@ plt.title('Ruta óptima encontrada usando Variable Neighborhood Search (VNS)')
 plt.legend()  # Mostrar la leyenda
 plt.grid(True)
 plt.show()
-
