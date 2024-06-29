@@ -8,7 +8,7 @@ inicio_ruta = (-11.859431, -77.081518)
 fin_ruta = (-11.822902, -77.059019)
 
 # URL del archivo CSV
-url = "https://raw.githubusercontent.com/rozheb/pruebaAlgoritmo/main/DATASETS/datasetrutas4.csv"
+url = "https://raw.githubusercontent.com/rozheb/pruebaAlgoritmo/main/DATASETS/datasetrutas6.csv"
 
 # Cargar datos desde la URL
 datos = pd.read_csv(url, on_bad_lines='skip')
