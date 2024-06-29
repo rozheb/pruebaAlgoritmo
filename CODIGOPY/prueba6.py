@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -13,53 +14,25 @@ url = "https://raw.githubusercontent.com/rozheb/pruebaAlgoritmo/main/DATASETS/da
 # Cargar datos desde la URL
 datos = pd.read_csv(url, on_bad_lines='skip')
 
-# Verificar las primeras filas y las columnas disponibles
-print(datos.head())
-print(datos.columns)
-
-# Extraer las coordenadas y otros atributos relevantes
+# Extraer las coordenadas de latitud y longitud
 locations = datos[['LAT', 'LONG']].values
-turnos = datos['TURNO'].values
-distancias = datos['DIST'].values
-capacidades = datos['CAPACIDAD'].values
 
 # Concatenar coordenadas de inicio y fin para cada ruta, incluyendo el inicio y fin de todos los camiones
 locations = np.concatenate(([inicio_ruta], locations, [fin_ruta]), axis=0)
 
-# Plot para visualizar las ubicaciones de inicio y fin de las rutas
-plt.figure(figsize=(10, 8))
-
-# Graficar puntos de inicio y fin con colores distintos
-plt.scatter(locations[1:-1, 0], locations[1:-1, 1], marker='o', c='blue', label='Puntos de recolección')
-
-# Graficar marcadores para el inicio y fin de la ruta de todos los camiones
-plt.scatter(inicio_ruta[0], inicio_ruta[1], marker='*', s=200, c='purple', label='Inicio de ruta de todos los camiones')
-plt.scatter(fin_ruta[0], fin_ruta[1], marker='*', s=200, c='orange', label='Fin de ruta de todos los camiones')
-
-plt.xlabel('Latitud')
-plt.ylabel('Longitud')
-plt.title('Ubicaciones de recolección')
-plt.legend()  # Mostrar la leyenda
-plt.grid(True)
-plt.show()
-
-# Calcular matriz de distancias euclidianas
+# Crear una matriz de distancias euclidianas
 distance_matrix = cdist(locations, locations, metric='euclidean')
 
 # Función para calcular la distancia total de un camino en el grafo
-def total_distance(route, distance_matrix, demandas, capacidad):
+def total_distance(route, distance_matrix):
     n = len(route)
     total_dist = 0
-    total_demand = 0
     for i in range(n - 1):
-        if total_demand + demandas[route[i]] > capacidad:
-            return float('inf')  # Penalizar si excede la capacidad
         total_dist += distance_matrix[route[i], route[i + 1]]
-        total_demand += demandas[route[i]]
     return total_dist
 
 # Función para la optimización 2-opt
-def two_opt(route, distance_matrix, demandas, capacidad):
+def two_opt(route, distance_matrix):
     n = len(route)
     best_route = route[:]
     improved = True
@@ -70,62 +43,74 @@ def two_opt(route, distance_matrix, demandas, capacidad):
                 if j - i == 1:
                     continue
                 new_route = best_route[:i] + best_route[i:j][::-1] + best_route[j:]
-                if total_distance(new_route, distance_matrix, demandas, capacidad) < total_distance(best_route, distance_matrix, demandas, capacidad):
+                if total_distance(new_route, distance_matrix) < total_distance(best_route, distance_matrix):
                     best_route = new_route
                     improved = True
         route = best_route
     return best_route
 
 # Algoritmo de Búsqueda de Vecindario Variable (VNS)
-def vns(distance_matrix, demandas, capacidad, max_iter=100):
+def vns(distance_matrix, max_iter=100):
     n = distance_matrix.shape[0]
+    # Inicializar ruta asegurando que comience en 0 y termine en n-1
     mejor_camino = [0] + list(np.random.permutation(range(1, n-1))) + [n-1]
-    mejor_distancia = total_distance(mejor_camino, distance_matrix, demandas, capacidad)
+    mejor_distancia = total_distance(mejor_camino, distance_matrix)
     
     iteracion = 0
     while iteracion < max_iter:
         k = 1
-        while k <= 3:
+        while k <= 3:  # Número máximo de estructuras de vecindario
             if k == 1:
+                # Intercambiar dos nodos aleatorios, excluyendo el primero y último
                 i, j = np.random.randint(1, n-1, size=2)
                 mejor_camino[i], mejor_camino[j] = mejor_camino[j], mejor_camino[i]
             elif k == 2:
-                mejor_camino = two_opt(mejor_camino, distance_matrix, demandas, capacidad)
+                # Realizar una búsqueda local 2-opt en el vecindario
+                mejor_camino = two_opt(mejor_camino, distance_matrix)
             elif k == 3:
+                # Permutar subrutas aleatorias, excluyendo el primero y último
                 i, j = np.random.randint(1, n-1, size=2)
                 if i > j:
                     i, j = j, i
-                mejor_camino[i:j] = mejor_camino[i:j][::-1]
+                mejor_camino[i:j] = mejor_camino[i:j][::-1]  # Invertir subruta
             
-            distancia_actual = total_distance(mejor_camino, distance_matrix, demandas, capacidad)
+            # Calcular la distancia del camino actual
+            distancia_actual = total_distance(mejor_camino, distance_matrix)
             
+            # Actualizar el mejor camino si encontramos uno mejor
             if distancia_actual < mejor_distancia:
                 mejor_distancia = distancia_actual
-                k = 1
+                k = 1  # Reiniciar el contador de estructuras de vecindario
             else:
-                k += 1
+                k += 1  # Probar la siguiente estructura de vecindario
         
         iteracion += 1
-        ruta_actual_locations = locations[mejor_camino]
-        print(f"Iteración {iteracion}, Ruta actual: {ruta_actual_locations}")
     
     return mejor_camino, mejor_distancia
 
-# Asumimos que la capacidad del camión es un valor constante (ajusta según sea necesario)
-capacidad_camion = 10  # Capacidad en toneladas
-
-# Demanda de recolección en cada punto (ejemplo)
-demandas = np.concatenate(([0], capacidades, [0]))
-
 # Ejecutar el algoritmo VNS para encontrar la ruta óptima
-ruta_optima, distancia_optima = vns(distance_matrix, demandas, capacidad_camion)
+ruta_optima, distancia_optima = vns(distance_matrix)
 
 # Mostrar la ruta óptima encontrada
 print("Ruta óptima encontrada:", locations[ruta_optima])
 print("Distancia óptima:", distancia_optima)
 
+# Guardar la ruta óptima encontrada en formato JSON
+ruta_optima_locations = locations[ruta_optima]  # Quita .tolist() para mantener el formato numpy array
+
+ruta_json = {
+    "ruta_optima": ruta_optima_locations.tolist(),
+    "distancia_optima": float(distancia_optima)
+}
+
+# Escribir el JSON en un archivo local
+ruta_json_file = 'ruta_optima.json'
+with open(ruta_json_file, 'w') as json_file:
+    json.dump(ruta_json, json_file)
+
 # Plot para visualizar la ruta óptima encontrada
-ruta_optima_locations = locations[ruta_optima]
+ruta_optima_locations = np.array(ruta_optima_locations)  # Convertir de nuevo a numpy array
+
 plt.figure(figsize=(10, 8))
 plt.plot(ruta_optima_locations[:, 0], ruta_optima_locations[:, 1], 'o-')
 plt.scatter(locations[:, 0], locations[:, 1], marker='o', c='red', edgecolor='b')
@@ -138,3 +123,5 @@ plt.title('Ruta óptima encontrada usando Variable Neighborhood Search (VNS)')
 plt.legend()  # Mostrar la leyenda
 plt.grid(True)
 plt.show()
+
+print(f"Ruta óptima guardada en '{ruta_json_file}'")
