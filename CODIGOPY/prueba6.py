@@ -136,7 +136,7 @@ github_path = "json/ruta_optima.json"
 commit_message = "Add optimal route JSON file"
 
 # Token de acceso personal de GitHub
-github_token = "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"  # Reemplaza esto con tu token
+github_token = ""  # Reemplaza esto con tu token
 
 # Leer el contenido del archivo
 with open(local_file_path, "rb") as file:
